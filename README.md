@@ -81,6 +81,93 @@ app/
 }
 ```
 
+---
+
+## How This Project Works
+
+### Application Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Browser/App)                      │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ HTTP Request
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     FastAPI Server (main.py)                     │
+│                    Running on localhost:8000                     │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ Routes to
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Routes (routes/auth.py)                     │
+│                   /auth/register  /auth/login                    │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ Uses
+                              ▼
+┌──────────────┬──────────────┴──────────────┬───────────────────┐
+│   Models     │         Utils               │    Database       │
+│  (user.py)   │  (security.py, auth.py)     │  (database.py)    │
+└──────────────┴─────────────────────────────┴───────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SQLite Database (task.db)                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### File-by-File Explanation
+
+| File | Purpose |
+|------|---------|
+| `main.py` | Entry point - creates FastAPI app, initializes DB tables, registers routes |
+| `database.py` | Database connection - SQLite setup, session factory, Base class |
+| `models/user.py` | User model - defines users table structure |
+| `models/task.py` | Task model - defines tasks table structure |
+| `routes/auth.py` | Auth endpoints - register and login APIs |
+| `utils/security.py` | Password handling - hash and verify passwords |
+| `utils/auth.py` | JWT tokens - create access tokens |
+
+### Authentication Flow
+
+#### Registration
+```
+1. POST /auth/register { "email": "...", "password": "..." }
+2. Check if email exists → Error 400 if yes
+3. Hash password using passlib
+4. Save user to database
+5. Return { "message": "User created" }
+```
+
+#### Login
+```
+1. POST /auth/login { "email": "...", "password": "..." }
+2. Find user by email → Error 401 if not found
+3. Verify password → Error 401 if wrong
+4. Create JWT token with user_id and role
+5. Return { "access_token": "...", "token_type": "bearer" }
+```
+
+### Database Structure
+
+```
+┌─────────────────────────────────────────┐
+│              users table                │
+├─────────────────────────────────────────┤
+│ id │ email │ password_hash │ role │ ... │
+└─────────────────────────────────────────┘
+         │
+         │ user_id (Foreign Key)
+         ▼
+┌─────────────────────────────────────────┐
+│              tasks table                │
+├─────────────────────────────────────────┤
+│ id │ title │ completed │ user_id │ ...  │
+└─────────────────────────────────────────┘
+```
+
+---
+
 ## Roadmap
 
 - [x] Phase 1: Auth (register/login)
